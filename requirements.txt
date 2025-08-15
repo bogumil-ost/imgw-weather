@@ -1,0 +1,11 @@
+# Requirements for IMGW Weather Application
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+sqlite3==2.6.0
+requests==2.31.0
+pydantic==2.5.0
+python-multipart==0.0.6
+schedule==1.2.0
+aiofiles==23.2.1
+jinja2==3.1.2
+python-dateutil==2.8.2

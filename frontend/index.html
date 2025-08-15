@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitorowania Pogody IMGW</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-cloud-sun"></i>
+                    <h1>Pogoda IMGW</h1>
+                </div>
+                <div class="header-controls">
+                    <div class="time-selector">
+                        <label for="timeRange">Zakres czasowy:</label>
+                        <select id="timeRange" class="form-control">
+                            <option value="today">Dziś</option>
+                            <option value="yesterday">Wczoraj</option>
+                            <option value="week">Tydzień</option>
+                            <option value="month">Miesiąc</option>
+                        </select>
+                    </div>
+                    <button id="refreshBtn" class="btn btn--primary">
+                        <i class="fas fa-sync-alt"></i> Odśwież
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="navigation">
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="dashboard">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </button>
+                <button class="nav-tab" data-tab="charts">
+                    <i class="fas fa-chart-line"></i> Wykresy
+                </button>
+                <button class="nav-tab" data-tab="table">
+                    <i class="fas fa-table"></i> Tabela
+                </button>
+                <button class="nav-tab" data-tab="info">
+                    <i class="fas fa-info-circle"></i> Informacje
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Tab -->
+            <section id="dashboard" class="tab-content active">
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="avgTemp">--°C</h3>
+                            <p>Średnia temperatura</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="avgHumidity">--%</h3>
+                            <p>Średnia wilgotność</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-compress-arrows-alt"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="avgPressure">-- hPa</h3>
+                            <p>Średnie ciśnienie</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="stationCount">--</h3>
+                            <p>Aktywne stacje</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-map">
+                    <div class="map-container">
+                        <h3>Mapa stacji meteorologicznych</h3>
+                        <div id="map" style="height: 500px; position: relative;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Tab -->
+            <section id="charts" class="tab-content">
+                <div class="charts-container">
+                    <div class="chart-controls">
+                        <div class="station-selector">
+                            <label for="stationSelect">Wybierz stacje:</label>
+                            <select id="stationSelect" class="form-control" multiple>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>Temperatura</h3>
+                            <div class="chart-container" style="height: 300px; position: relative;">
+                                <canvas id="tempChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <h3>Opady</h3>
+                            <div class="chart-container" style="height: 300px; position: relative;">
+                                <canvas id="precipChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <h3>Ciśnienie atmosferyczne</h3>
+                            <div class="chart-container" style="height: 300px; position: relative;">
+                                <canvas id="pressureChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <h3>Wilgotność</h3>
+                            <div class="chart-container" style="height: 300px; position: relative;">
+                                <canvas id="humidityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Table Tab -->
+            <section id="table" class="tab-content">
+                <div class="table-container">
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Szukaj stacji...">
+                        </div>
+                        <button id="exportBtn" class="btn btn--secondary">
+                            <i class="fas fa-download"></i> Eksport CSV
+                        </button>
+                    </div>
+                    
+                    <div class="data-table-wrapper">
+                        <table class="data-table" id="dataTable">
+                            <thead>
+                                <tr>
+                                    <th data-sort="stacja">Stacja <i class="fas fa-sort"></i></th>
+                                    <th data-sort="temperatura">Temperatura <i class="fas fa-sort"></i></th>
+                                    <th data-sort="wilgotnosc_wzgledna">Wilgotność <i class="fas fa-sort"></i></th>
+                                    <th data-sort="cisnienie">Ciśnienie <i class="fas fa-sort"></i></th>
+                                    <th data-sort="predkosc_wiatru">Wiatr <i class="fas fa-sort"></i></th>
+                                    <th data-sort="suma_opadu">Opady <i class="fas fa-sort"></i></th>
+                                    <th data-sort="data_pomiaru">Ostatni pomiar <i class="fas fa-sort"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Table content will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Info Tab -->
+            <section id="info" class="tab-content">
+                <div class="info-container">
+                    <div class="card">
+                        <div class="card__body">
+                            <h2>System Monitorowania Pogody IMGW</h2>
+                            <p>Aplikacja do wizualizacji danych meteorologicznych z Instytutu Meteorologii i Gospodarki Wodnej.</p>
+                            
+                            <h3>Funkcjonalności:</h3>
+                            <ul>
+                                <li>Interaktywna mapa stacji meteorologicznych w Polsce</li>
+                                <li>Wykresy temperatury, opadów, ciśnienia i wilgotności</li>
+                                <li>Tabela danych z możliwością sortowania i filtrowania</li>
+                                <li>Eksport danych do pliku CSV</li>
+                                <li>Automatyczne odświeżanie danych co godzinę</li>
+                                <li>Responsywny design dla urządzeń mobilnych</li>
+                            </ul>
+                            
+                            <h3>Źródło danych:</h3>
+                            <p><a href="https://danepubliczne.imgw.pl/api/data/synop/" target="_blank">IMGW API - Dane synoptyczne</a></p>
+                            
+                            <div class="status-info">
+                                <div class="status status--success">
+                                    <i class="fas fa-check-circle"></i>
+                                    Połączenie z API aktywne
+                                </div>
+                                <p>Ostatnie odświeżenie: <span id="lastUpdate">--:--</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Loading Modal -->
+        <div id="loadingModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="loading-spinner">
+                    <i class="fas fa-sync-alt fa-spin"></i>
+                </div>
+                <p>Ładowanie danych...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
